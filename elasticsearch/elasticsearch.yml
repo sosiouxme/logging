@@ -1,6 +1,7 @@
 cluster.name: ${CLUSTER_NAME}
 script.disable_dynamic: false
-#searchguard.key_path: .
+searchguard.key_path: /etc/elasticsearch/cluster/${CLUSTER_NAME}
+searchguard.check_for_root: false
 #searchguard.auditlog.enabled: true
 
 ############################# Search-Guard ################################

@@ -78,10 +78,16 @@ items:
               - name: certs
                 mountPath: /etc/elasticsearch/keys
                 readOnly: true
+              - name: cluster-key
+                mountPath: /etc/elasticsearch/cluster
+                readOnly: false
         volumes:
           - name: certs
             secret:
               secretName: elasticsearch
+          - name: cluster-key
+            hostPath:
+              path: /tmp/elasticsearch/cluster
 -
   apiVersion: v1
   kind: Pod

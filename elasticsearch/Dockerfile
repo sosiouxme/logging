@@ -32,6 +32,6 @@ COPY logging.yml /usr/share/elasticsearch/config/logging.yml
 
 RUN chmod -R og+w /usr/share/elasticsearch
 
-USER default
+#USER default
 
 CMD ["/usr/share/elasticsearch/bin/elasticsearch"]
