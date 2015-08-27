@@ -46,6 +46,9 @@ objects:
             image: "sosiouxme/openshift-elasticsearch:v0.1"
             ports:
             -
+              containerPort: 9200
+              name: "mutualtls"
+            -
               containerPort: 9300
               name: "cluster"
             env:
@@ -67,7 +70,7 @@ objects:
             image: "sosiouxme/openshift-auth-proxy:v0.1"
             ports:
               -
-                name: "proxy"
+                name: "oaproxy"
                 containerPort: 3000
             env:
               -
