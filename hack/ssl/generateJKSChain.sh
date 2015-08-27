@@ -17,7 +17,7 @@ echo Generating keystore and certificate for node $NODE_NAME
         -keypass $KS_PASS \
         -storepass $KS_PASS \
         -dname "CN=$NODE_NAME, OU=SSL, O=Test, L=Test, C=DE" \
-        -ext san=dns:$NODE_NAME,ip:10.1.1.1
+        -ext san=dns:$NODE_NAME,dns:localhost,ip:10.1.1.1
 
 echo Generating certificate signing request for node $NODE_NAME
 
@@ -29,7 +29,7 @@ echo Generating certificate signing request for node $NODE_NAME
         -keypass $KS_PASS \
         -storepass $KS_PASS \
         -dname "CN=$NODE_NAME, OU=SSL, O=Test, L=Test, C=DE" \
-        -ext san=dns:$NODE_NAME,ip:10.1.1.1
+        -ext san=dns:$NODE_NAME,dns:localhost,ip:10.1.1.1
 
 echo Sign certificate request with CA
 openssl ca \

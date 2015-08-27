@@ -1,0 +1,129 @@
+apiVersion: "v1"
+kind: "Template"
+metadata:
+  name: logging-elasticsearch-template
+  annotations:
+    description: "Template for deploying logging support entities: oauth, secrets, service accounts, services."
+    tags: "infrastructure"
+labels:
+  logging-infra: support
+  provider: openshift
+  component: elasticsearch
+objects:
+-
+  apiVersion: v1
+  kind: OAuthClient
+  metadata:
+    name: integration-proxy-es
+  secret: ${OAP_OAUTH_SECRET}
+-
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: elasticsearch
+  data:
+    key: ${ES_KEY_STORE}
+    truststore: ${ES_TRUST_STORE}
+  type: Opaque
+-
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: es-proxy
+  data:
+    oauth-secret: ${OAP_OAUTH_SECRET_BASE64}
+    server-key: ${OAP_SERVER_KEY}
+    server-cert: ${OAP_SERVER_CERT}
+    "server-tls.json": ${OAP_SERVER_TLS}
+    server-ca: ${OAP_SERVER_CA}
+    client-key: ${OAP_CLIENT_KEY}
+    client-cert: ${OAP_CLIENT_CERT}
+  type: Opaque
+-
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: logging-es
+  secrets:
+    - name: es-proxy
+    - name: elasticsearch
+-
+  apiVersion: "v1"
+  kind: "Service"
+  metadata:
+    name: "es-log-entry"
+  spec:
+    ports:
+    -
+      port: 9200
+      targetPort: https
+    selector:
+      provider: "openshift"
+      component: "elasticsearch"
+-
+  apiVersion: "v1"
+  kind: "Service"
+  metadata:
+    name: "es-log-query"
+  spec:
+    ports:
+    -
+      port: 9201
+      targetPort: proxy
+    selector:
+      provider: "openshift"
+      component: "elasticsearch"
+-
+  apiVersion: "v1"
+  kind: "Service"
+  metadata:
+    name: "es-logging-cluster"
+  spec:
+    portalIP: "None"
+    ports:
+    -
+      port: 9300
+      targetPort: cluster
+    selector:
+      provider: "openshift"
+      component: "elasticsearch"
+parameters:
+-
+  description: "A secret for the authentication proxy oauth client"
+  name: OAP_OAUTH_SECRET
+  required: true
+-
+  description: "A secret for the authentication proxy oauth client- (echo -n $secret | base64)"
+  name: OAP_OAUTH_SECRET_BASE64
+  required: true
+-
+  description: "A private key (PEM) for the authentication proxy server (base64 encode)"
+  name: OAP_SERVER_KEY
+  required: true
+-
+  description: "A certificate (PEM) for the authentication proxy server (base64 encoded)"
+  name: OAP_SERVER_CERT
+  required: true
+-
+  description: "A TLS options file (JSON) for the authentication proxy server (base64 encode)"
+  name: OAP_SERVER_TLS
+  required: true
+-
+  description: "A client key (PEM) for the proxy to connect to ES (base64 encode)"
+  name: OAP_CLIENT_KEY
+  required: true
+-
+  description: "A client cert (PEM) for the proxy to connect to ES (base64 encoded)"
+  name: OAP_CLIENT_CERT
+  required: true
+-
+  description: "CA cert to use for validating TLS client certs under mutual_tls auth method (base64 encode)"
+  name: OAP_SERVER_CA
+-
+  description: "Java keystore for securing direct ElasticSearch access - $(base64 hack/ssl/es-logging/es-logging-keystore.jks)"
+  name: ES_KEY_STORE
+  required: true
+-
+  description: "Java truststore for securing direct ElasticSearch access - $(base64 hack/ssl/es-logging/truststore.jks)"
+  name: ES_TRUST_STORE
+  required: true

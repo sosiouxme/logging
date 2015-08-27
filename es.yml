@@ -1,0 +1,128 @@
+apiVersion: "v1"
+kind: "Template"
+metadata:
+  name: logging-elasticsearch-template
+  annotations:
+    description: "Template for deploying ElasticSearch with proxy/plugin for logging purposes"
+    tags: "infrastructure"
+labels:
+  logging-infra: elasticsearch
+  provider: openshift
+  component: elasticsearch
+objects:
+-
+  apiVersion: "v1"
+  kind: "DeploymentConfig"
+  metadata:
+    name: ${ES_DEPLOYMENT_NAME}
+  spec:
+    replicas: 1
+    selector:
+      provider: "openshift"
+      component: "elasticsearch"
+      deployment: ${ES_DEPLOYMENT_NAME}
+    triggers:
+    - type: ConfigChange
+    strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          provider: "openshift"
+          component: "elasticsearch"
+          deployment: ${ES_DEPLOYMENT_NAME}
+      spec:
+        nodeSelector:
+          infra: "true"
+        serviceAccount: logging-es
+        containers:
+          -
+            name: "elasticsearch"
+            image: "sosiouxme/elasticsearch:v0.1"
+            ports:
+            -
+              containerPort: 9300
+              name: "cluster"
+            env:
+            -
+              name: "KUBERNETES_TRUST_CERT"
+              value: "true"
+            -
+              name: "SERVICE_DNS"
+              value: "es-logging-cluster"
+            -
+              name: "CLUSTER_NAME"
+              value: "elasticsearch"
+            volumeMounts:
+              - name: elasticsearch
+                mountPath: /etc/elasticsearch/keys
+                readOnly: true
+          -
+            name: "es-proxy"
+            image: "sosiouxme/openshift-auth-proxy:v0.1"
+            ports:
+              -
+                name: "proxy"
+                containerPort: 3000
+            env:
+              -
+                name: "OAP_BACKEND_URL"
+                value: "https://localhost:9200"
+              -
+                name: "OAP_AUTH_MODE"
+                value: "bearer"
+              -
+                name: "OAP_TRANSFORM"
+                value: "kibana_es"
+              -
+                name: "OAP_OAUTH_ID"
+                value: ${OAP_OAUTH_ID}
+              -
+                name: "OAP_PUBLIC_MASTER_URL"
+                value: ${OAP_PUBLIC_MASTER_URL}
+              -
+                name: "OAP_MASTER_URL"
+                value: ${OAP_MASTER_URL}
+              -
+                name: "OAP_MASTER_CA_FILE"
+                value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+              -
+                name: "OAP_DEBUG"
+                value: ${OAP_DEBUG}
+            volumeMounts:
+              - name: es-proxy
+                mountPath: /secret
+                readOnly: true
+        volumes:
+          - name: elasticsearch
+            secret:
+              secretName: elasticsearch
+          - name: es-proxy
+            secret:
+              secretName: es-proxy
+parameters:
+-
+  description: 'Create multiple deployments in order to "scale"; will share services but must have different names.'
+  name: ES_DEPLOYMENT_NAME
+  value: "elasticsearch"
+-
+  description: "Public URL for the master, for authentication redirection"
+  name: OAP_PUBLIC_MASTER_URL
+  required: true
+-
+  description: "Internal URL for the master, for authentication retrieval"
+  name: OAP_MASTER_URL
+  value: "https://kubernetes.default.svc.cluster.local:8443"
+-
+  description: "A name to identify the authentication proxy client to the oauth server"
+  name: OAP_OAUTH_ID
+  value: "integration-proxy-es"
+-
+  description: "Show extra proxy debug information at startup and during operations"
+  name: OAP_DEBUG
+  value: "false"
