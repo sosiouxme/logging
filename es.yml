@@ -43,7 +43,7 @@ objects:
         containers:
           -
             name: "elasticsearch"
-            image: "sosiouxme/elasticsearch:v0.1"
+            image: "sosiouxme/openshift-elasticsearch:v0.1"
             ports:
             -
               containerPort: 9300
@@ -83,9 +83,6 @@ objects:
                 name: "OAP_OAUTH_ID"
                 value: ${OAP_OAUTH_ID}
               -
-                name: "OAP_PUBLIC_MASTER_URL"
-                value: ${OAP_PUBLIC_MASTER_URL}
-              -
                 name: "OAP_MASTER_URL"
                 value: ${OAP_MASTER_URL}
               -
@@ -111,17 +108,13 @@ parameters:
   name: ES_DEPLOYMENT_NAME
   value: "elasticsearch"
 -
-  description: "Public URL for the master, for authentication redirection"
-  name: OAP_PUBLIC_MASTER_URL
-  required: true
+  description: "A name to identify the authentication proxy client to the oauth server"
+  name: ES_OAP_OAUTH_ID
+  value: "integration-proxy-es"
 -
   description: "Internal URL for the master, for authentication retrieval"
   name: OAP_MASTER_URL
   value: "https://kubernetes.default.svc.cluster.local:8443"
--
-  description: "A name to identify the authentication proxy client to the oauth server"
-  name: OAP_OAUTH_ID
-  value: "integration-proxy-es"
 -
   description: "Show extra proxy debug information at startup and during operations"
   name: OAP_DEBUG

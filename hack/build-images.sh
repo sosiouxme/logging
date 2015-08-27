@@ -1,3 +1,3 @@
-docker build -t openshift/fluentd:v1 ../fluentd/
-docker build -t openshift/elasticsearch:v1 ../elasticsearch/
-docker build -t openshift/kibana:v1 ../kibana/
+docker build -t sosiouxme/openshift-fluentd:v0.1 ../fluentd/
+docker build -t sosiouxme/openshift-elasticsearch:v0.1 ../elasticsearch/
+docker build -t sosiouxme/openshift-kibana:v0.1 ../kibana/
