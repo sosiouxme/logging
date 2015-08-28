@@ -39,6 +39,7 @@ objects:
           provider: openshift
           component: "kibana"
       spec:
+        serviceAccount: aggregated-logging
         containers:
           -
             name: "kibana"
@@ -89,13 +90,16 @@ objects:
                 name: "OAP_DEBUG"
                 value: ${OAP_DEBUG}
             volumeMounts:
-              - name: es-proxy
+              - name: kibana-proxy
                 mountPath: /secret
                 readOnly: true
         volumes:
           - name: kibana
             secret:
               secretName: kibana
+          - name: kibana-proxy
+            secret:
+              secretName: kibana-proxy
 parameters:
 -
   description: "Internal URL for the master, for authentication retrieval"

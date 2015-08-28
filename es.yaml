@@ -37,9 +37,7 @@ objects:
           component: "elasticsearch"
           deployment: ${ES_DEPLOYMENT_NAME}
       spec:
-        nodeSelector:
-          infra: "true"
-        serviceAccount: logging-es
+        serviceAccount: aggregated-logging
         containers:
           -
             name: "elasticsearch"
