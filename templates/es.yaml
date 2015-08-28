@@ -3,7 +3,7 @@ kind: "Template"
 metadata:
   name: logging-elasticsearch-template
   annotations:
-    description: "Template for deploying ElasticSearch with proxy/plugin for logging purposes"
+    description: "Template for deploying ElasticSearch with proxy/plugin for storing and retrieving aggregated cluster logs."
     tags: "infrastructure"
 labels:
   logging-infra: elasticsearch
@@ -81,10 +81,7 @@ objects:
                 value: "bearer"
               -
                 name: "OAP_TRANSFORM"
-                value: "kibana_es"
-              -
-                name: "OAP_OAUTH_ID"
-                value: ${OAP_OAUTH_ID}
+                value: "kibana_es,user_header"
               -
                 name: "OAP_MASTER_URL"
                 value: ${OAP_MASTER_URL}
@@ -110,10 +107,6 @@ parameters:
   description: 'Create multiple deployments in order to "scale"; will share services but must have different names.'
   name: ES_DEPLOYMENT_NAME
   value: "elasticsearch"
--
-  description: "A name to identify the authentication proxy client to the oauth server"
-  name: ES_OAP_OAUTH_ID
-  value: "integration-proxy-es"
 -
   description: "Internal URL for the master, for authentication retrieval"
   name: OAP_MASTER_URL

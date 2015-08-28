@@ -8,14 +8,16 @@ metadata:
 labels:
   logging-infra: support
   provider: openshift
-  component: elasticsearch
+  component: support
 objects:
 -
   apiVersion: v1
   kind: OAuthClient
   metadata:
-    name: integration-proxy-es
-  secret: ${ES_OAP_OAUTH_SECRET}
+    name: kibana-proxy
+  secret: ${KB_OAP_OAUTH_SECRET}
+  redirectURIs:
+  - https://${KIBANA_HOSTNAME}
 -
   apiVersion: v1
   kind: Secret
@@ -31,7 +33,6 @@ objects:
   metadata:
     name: es-proxy
   data:
-    oauth-secret: ${ES_OAP_OAUTH_SECRET_BASE64}
     server-key: ${ES_OAP_SERVER_KEY}
     server-cert: ${ES_OAP_SERVER_CERT}
     "server-tls.json": ${ES_OAP_SERVER_TLS}
@@ -42,12 +43,46 @@ objects:
   type: Opaque
 -
   apiVersion: v1
+  kind: Secret
+  metadata:
+    name: kibana
+  data:
+    key: ${KIBANA_ES_CLIENT_KEY}
+    cert: ${KIBANA_ES_CLIENT_CERT}
+    ca: ${KIBANA_ES_CA}
+  type: Opaque
+-
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: kibana-proxy
+  data:
+    oauth-secret: ${KB_OAP_OAUTH_SECRET_BASE64}
+    server-key: ${KB_OAP_SERVER_KEY}
+    server-cert: ${KB_OAP_SERVER_CERT}
+    "server-tls.json": ${KB_OAP_SERVER_TLS}
+  type: Opaque
+-
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: fluentd
+  data:
+    key: ${FLUENTD_ES_CLIENT_KEY}
+    cert: ${FLUENTD_ES_CLIENT_CERT}
+    ca: ${FLUENTD_ES_CA}
+  type: Opaque
+-
+  apiVersion: v1
   kind: ServiceAccount
   metadata:
-    name: logging-es
+    name: aggregated-logging
   secrets:
-    - name: es-proxy
+    - name: fluentd
     - name: elasticsearch
+    - name: es-proxy
+    - name: kibana
+    - name: kibana-proxy
 -
   apiVersion: "v1"
   kind: "Service"
@@ -88,39 +123,53 @@ objects:
     selector:
       provider: "openshift"
       component: "elasticsearch"
+-
+  apiVersion: "v1"
+  kind: "Service"
+  metadata:
+    name: "kibana"
+  spec:
+    ports:
+      -
+        port: 443
+        targetPort: "kibana-proxy"
+    selector:
+      provider: openshift
+      component: "kibana"
+-
+  apiVersion: v1
+  kind: Route
+  metadata:
+    name: kibana
+  spec:
+    host: ${KIBANA_HOSTNAME}
+    to:
+      kind: Service
+      name: kibana
+    tls:
+      termination: passthrough
 parameters:
 -
-  description: "A secret for the authentication proxy oauth client"
-  name: ES_OAP_OAUTH_SECRET
-  required: true
--
-  description: "A secret for the authentication proxy oauth client- (echo -n $secret | base64)"
-  name: ES_OAP_OAUTH_SECRET_BASE64
-  required: true
--
-  description: "A private key (PEM) for the authentication proxy server (base64 encode)"
+  description: "A private key (PEM) for the authentication proxy server in front of ES (base64 encode)"
   name: ES_OAP_SERVER_KEY
   required: true
 -
-  description: "A certificate (PEM) for the authentication proxy server (base64 encoded)"
+  description: "A certificate (PEM) for the authentication proxy server in front of ES (base64 encoded)"
   name: ES_OAP_SERVER_CERT
   required: true
 -
-  description: "A TLS options file (JSON) for the authentication proxy server (base64 encode)"
+  description: "A TLS options file (JSON) for the authentication proxy server in front of ES (base64 encode)"
   name: ES_OAP_SERVER_TLS
   required: true
 -
   description: "A client key (PEM) for the proxy to connect to ES (base64 encode)"
   name: ES_OAP_CLIENT_KEY
-  required: true
 -
   description: "A client cert (PEM) for the proxy to connect to ES (base64 encoded)"
   name: ES_OAP_CLIENT_CERT
-  required: true
 -
   description: "A CA (PEM) for the proxy to validate its connection to ES (base64 encoded)"
   name: ES_OAP_BACKEND_CA
-  required: true
 -
   description: "CA cert to use for validating TLS client certs under mutual_tls auth method (base64 encode) (not currently used)"
   name: ES_OAP_MUTUAL_CA
@@ -132,3 +181,46 @@ parameters:
   description: "Java truststore for securing direct ElasticSearch access - $(base64 hack/ssl/es-logging/truststore.jks)"
   name: ES_TRUST_STORE
   required: true
+-
+  description: "A client key (PEM) for fluentd to connect to ES (base64 encode)"
+  name: FLUENTD_ES_CLIENT_KEY
+-
+  description: "A client cert (PEM) for fluentd to connect to ES (base64 encoded)"
+  name: FLUENTD_ES_CLIENT_CERT
+-
+  description: "A CA (PEM) for fluentd to validate its connection to ES (base64 encoded)"
+  name: FLUENTD_ES_CA
+-
+  description: "A shared secret for the authentication proxy oauth client in front of Kibana"
+  name: KB_OAP_OAUTH_SECRET
+  required: true
+-
+  description: "A shared secret for the authentication proxy oauth client in front of Kibana - (echo -n $secret | base64)"
+  name: KB_OAP_OAUTH_SECRET_BASE64
+  required: true
+-
+  description: "A private key (PEM) for the authentication proxy server in front of Kibana (base64 encode)"
+  name: KB_OAP_SERVER_KEY
+  required: true
+-
+  description: "A certificate (PEM) for the authentication proxy server in front of Kibana (base64 encoded)"
+  name: KB_OAP_SERVER_CERT
+  required: true
+-
+  description: "A TLS options file (JSON) for the authentication proxy server in front of Kibana (base64 encode)"
+  name: KB_OAP_SERVER_TLS
+  required: true
+-
+  description: "Hostname at which users will visit Kibana and be authenticated."
+  name: KIBANA_HOSTNAME
+  required: true
+-
+  description: "A client key (PEM) for kibana to connect to ES (base64 encode)"
+  name: KIBANA_ES_CLIENT_KEY
+-
+  description: "A client cert (PEM) for kibana to connect to ES (base64 encoded)"
+  name: KIBANA_ES_CLIENT_CERT
+-
+  description: "A CA (PEM) for kibana to validate its connection to ES (base64 encoded)"
+  name: KIBANA_ES_CA
+
