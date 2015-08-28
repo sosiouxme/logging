@@ -16,10 +16,10 @@ objects:
   metadata:
     name: fluentd-elasticsearch
   spec:
-    serviceAccount: aggregated-logging
+    serviceAccount: fluentd
     containers:
     - name: fluentd-elasticsearch
-      image: sosiouxme/fluentd:v0.1
+      image: sosiouxme/openshift-fluentd:v0.1
       securityContext:
         privileged: true
       resources:

@@ -1,12 +1,44 @@
 # logging
-The purpose of this repo is to create the components of the logging stack via Dockerfiles `cd hack; sh build-images.sh` and then deploy them via a single yaml file `oc create -f logging.yml`.
+The purpose of this repo is to create the images of the logging stack
+via Dockerfiles `cd hack; sh build-images.sh` and then deploy them via
+templates as demonstrated in example-create.sh
 
-To use the mutual auth to connect to ElasticSearch you will need to create a JKS keychain and truststore for Elasticsearch, and unencrypted certificates and pkeys for Fluentd and Kibana.  The script hack/ssl/generateExampleKeys.sh will do this for you.  Then, you will need to configure secrets so that the containers can use these keys, if you ran generateExampleKeys.sh you can then run hack/ssl/createSecrets.sh and it will create the secrets and add them to the default service account.
+You will need to generate all the necessary certs/keys/etc and fill them
+into the templates as demonstrated in example-create.sh -- currently a tedious task.
 
-You will also need to update the value of the 'K8S_HOST_URL' variable in the logging.yml template to be the value of the host ip/dname where your Kubernetes api is available at.
-To allow fluentd to list all pods in the cluster, you will need to update the role of your service account.  Assuming you are using system:serviceaccount:default:default you can use the following command.  Please note this is not recommended for Production at this time.
-```
-oadm policy add-cluster-role-to-user cluster-reader system:serviceaccount:default:default
-```
+To use the mutual auth to connect to ElasticSearch you will need
+to create a JKS keychain and truststore for Elasticsearch, and
+unencrypted certificates and pkeys for Fluentd and Kibana.  The script
+hack/ssl/generateExampleKeys.sh will do this for you. Generating the
+parameters for the two openshift-auth-proxy definitions is not described
+yet, sorry.
 
-At this point you can create the stack using logging.yml.
+Running fluentd requires some special attention.
+
+Fluentd has its own service account which must be specially enabled
+to allow it to read node logs and gather pod metadata from the master.
+To allow fluentd to run as a privileged container so it can read node
+logs, you will need to add the account to the privileged SCC. This is
+accomplished as follows:
+
+    oc edit securitycontextconstraints/privileged
+
+And add the following line at the end:
+
+    - system:serviceaccount:default:fluentd
+
+To allow fluentd to list all pods in the cluster, you will need
+to update the role of your service account.
+
+    oadm policy add-cluster-role-to-user cluster-reader system:serviceaccount:default:fluentd
+
+Finally, creating the fluentd pod. You can just plain create it:
+
+    oc create -f fluentd-static-pod.yaml
+
+Of course this won't deploy it on all the nodes, just a single
+one, and it won't keep revive it if it dies or openshift-node
+goes down. To do that, you need a static pod definition. So
+copy it to all your nodes under the path configured for them
+to read and create static pod definitions [as described in the
+docs](https://docs.openshift.org/latest/admin_guide/aggregate_logging.html#creating-logging-pods).
